@@ -81,6 +81,7 @@ class EmpleadoServiceTest {
      * Qué prueba: buscar un empleado que SÍ existe.
      * Escenario: el repositorio simula que el id 3 es "Carlos Pérez".
      * Resultado esperado: el servicio devuelve ese empleado y consultó el repositorio.
+     *test fallido
      */
     @Test
     @DisplayName("buscarPorId devuelve el empleado cuando existe")
@@ -94,7 +95,7 @@ class EmpleadoServiceTest {
         assertEquals("Carlos Pérez", resultado.getNombreCompleto());
         // [DOBLE: Mock] además se verifica que se hizo la llamada
         // [CONCEPTO: verify(mock).metodo()]
-        verify(empleadoRepository).findById(3);
+        verify(empleadoRepository).findById(5);
     }
 
     /**
