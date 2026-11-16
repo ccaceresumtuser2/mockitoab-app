@@ -1,0 +1,60 @@
+# =====================================================================
+# Integración continua (CI) con GitHub Actions.
+# Compila el proyecto y ejecuta los tests (JUnit 5 + Mockito) de forma
+# automática cada vez que se sube código o se abre un pull request.
+# =====================================================================
+
+# Nombre del workflow que se muestra en la pestaña "Actions" de GitHub
+name: CI
+
+# ---------------------------------------------------------------------
+# Eventos que disparan el workflow
+# ---------------------------------------------------------------------
+on:
+  # Al hacer push a las ramas main o dev
+  push:
+    branches: [ main, dev ]
+  # Al abrir o actualizar un pull request cuyo destino sea main o dev
+  pull_request:
+    branches: [ main, dev ]
+
+# ---------------------------------------------------------------------
+# Trabajos (jobs) a ejecutar. Aquí hay uno solo.
+# ---------------------------------------------------------------------
+jobs:
+  build-and-test:
+    # Máquina virtual que provee GitHub donde corre el job (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+
+    # Pasos que se ejecutan en orden. Si uno falla, el job se detiene
+    # (salvo los pasos marcados con "if: always()").
+    steps:
+      # Paso 1: descarga el código del repositorio dentro de la máquina virtual
+      - name: Checkout del código
+        uses: actions/checkout@v5
+
+      # Paso 2: instala Java 21 (igual que maven.compiler.release en el pom.xml)
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin   # Distribución de OpenJDK (Eclipse Temurin)
+          java-version: '21'
+          cache: maven            # Guarda ~/.m2 entre ejecuciones: no vuelve a descargar dependencias
+
+      # Paso 3: compila y ejecuta los tests.
+      #   -B       modo batch (sin colores ni interacción, ideal para CI)
+      #   clean    borra target/ para partir desde cero
+      #   verify   compila, corre los tests con Surefire y genera el reporte de JaCoCo.
+      #            Si algún test falla, el comando falla y el pipeline queda en rojo.
+      # No necesita PostgreSQL: los tests usan mocks en lugar de la base de datos.
+      - name: Compilar y ejecutar tests
+        run: mvn -B clean verify
+
+      # Paso 4: sube los reportes de los tests como artefacto descargable
+      # desde la página de la ejecución en GitHub.
+      - name: Publicar reportes de tests
+        if: always()              # Se ejecuta aunque el paso anterior haya fallado (útil para ver qué test falló)
+        uses: actions/upload-artifact@v6
+        with:
+          name: surefire-reports           # Nombre del artefacto
+          path: target/surefire-reports/   # Carpeta donde Surefire deja los resultados (.txt y .xml)
